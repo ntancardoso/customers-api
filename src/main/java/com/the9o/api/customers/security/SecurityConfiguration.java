@@ -1,43 +1,57 @@
 package com.the9o.api.customers.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableGlobalMethodSecurity(prePostEnabled = true)
 @EnableWebSecurity
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
-	
-	@Value("${api.user:admin}")
-	private String apiUser;
-	@Value("${api.pass:j7CHmTNmM!}")
-	private String apiPass;
+public class SecurityConfiguration {
 
-	@Override
-	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-		
-		//TODO Added Basic InMemory Auth for DEMO purpose only.
-		auth.inMemoryAuthentication().
-				withUser(apiUser).password(apiPass).roles("USER", "ADMIN");
-	}
+    @Value("${api.user:test}")
+    private String apiUser;
 
+    @Value("${api.pass:test}")
+    private String apiPass;
 
-	@Override
-	protected void configure(HttpSecurity http) throws Exception {
-		
-		http.httpBasic().and().authorizeRequests().
-				antMatchers(HttpMethod.POST, "/customers").hasRole("ADMIN").
-				antMatchers(HttpMethod.PUT, "/customers/**").hasRole("ADMIN").
-				antMatchers(HttpMethod.DELETE, "/customers/**").hasRole("ADMIN").
-				antMatchers(HttpMethod.PATCH, "/customers/**").hasRole("ADMIN").and().
-				addFilterBefore(new CorsFilter(), ChannelProcessingFilter.class).
-				csrf().disable();
-	}
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .httpBasic(Customizer.withDefaults())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.POST, "/customers").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/customers/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/customers/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/customers/**").hasRole("ADMIN")
+                .anyRequest().authenticated() // Ensure other requests are authenticated
+            )
+            .csrf().disable(); // Consider enabling CSRF protection in production
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        AuthenticationManagerBuilder authenticationManagerBuilder = 
+            http.getSharedObject(AuthenticationManagerBuilder.class);
+        authenticationManagerBuilder
+            .inMemoryAuthentication()
+            .withUser(apiUser)
+            .password(passwordEncoder().encode(apiPass))
+            .roles("USER", "ADMIN");
+        return authenticationManagerBuilder.build();
+    }
 }

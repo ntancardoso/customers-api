@@ -1,13 +1,14 @@
 package com.the9o.api.customers.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Table;
-
 import org.hibernate.annotations.GenericGenerator;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 
 @Entity
 @Table(name = "customers")
@@ -24,7 +25,8 @@ public class Customer {
 	private String gender;
 	private String jobTitle;
 
-	Customer() { }
+	Customer() {
+	}
 
 	public Customer(String firstName, String lastName, String email, String gender, String jobTitle) {
 		this.firstName = firstName;
